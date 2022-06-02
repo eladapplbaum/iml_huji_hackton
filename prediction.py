@@ -262,6 +262,11 @@ def preprocess(df: pd.DataFrame, labels):
             'surgery before or after-Actual activity'
         ], axis=1, inplace=True)
 
+
+def preprocess(df: pd.DataFrame):
+    df.rename(columns=lambda x: x.replace('אבחנה-', ''), inplace=True)
+
+
     # Histological diagnosis
     df["Histological diagnosis"] = df["Histological diagnosis"].apply(
         lambda x: Histological_diagnosis_pre(x))
@@ -403,7 +408,6 @@ if __name__ == '__main__':
     # Load data and preprocess
 
     full_data = pd.read_csv("./Mission 2 - Breast Cancer/train.feats.csv")
-    full_data.rename(columns=lambda x: x.replace('אבחנה-', ''), inplace=True)
 
     # data_path, y_location_of_distal, y_tumor_path = sys.argv[1:]
 
