@@ -325,6 +325,7 @@ def preprocess(df: pd.DataFrame):
     df["N -lymph nodes mark (TNM)"] = df["N -lymph nodes mark (TNM)"].apply(
         lambda x: lymph_nodes_mark_pre(x))
 
+    #' Form Name' dummies
     df[' Form Name'] = df[' Form Name'].apply(lambda x: x.split(', '))
     df[' Form Name'] = df[' Form Name'].apply(lambda x: set(x))
 
