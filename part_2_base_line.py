@@ -1,89 +1,82 @@
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import AdaBoostRegressor
-from sklearn.model_selection import cross_validate, train_test_split
 import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.tree import DecisionTreeRegressor
 
-from prediction import preprocess
+CHOSEN_DEPTH = 20
 
-if __name__ == '__main__':
-    full_data = pd.read_csv("./Mission 2 - Breast Cancer/train.feats.csv")
 
-    labels = pd.read_csv("./Mission 2 - Breast Cancer/train.labels.1.csv")
-    # classified_labels = np.where(labels == 0, 0, 1)
-    processed_data = preprocess(full_data)
-    train_X, test_X, train_y, test_y = train_test_split(processed_data,
-                                                        np.array(
-                                                            labels).reshape(
-                                                            -1))
-    classified_train_y = np.where(train_y == 0, 0, 1)
-    classified_test_y = np.where(test_y == 0, 0, 1)
-    from sklearn.metrics import mean_squared_error
+def predict_classifier(X: pd.DataFrame, fitted_model):
+    pred = fitted_model.predict(X)
+    # pred.reshape(-1)
+    has_cancer_ind = np.argwhere(np.where(pred == 0, 0, 1) == 1)
+    has_cancer_ind = has_cancer_ind.reshape(-1)
 
+    return pred, np.take(X, indices=has_cancer_ind, axis=0), has_cancer_ind
+
+
+# We use this function in order to find the best classifier.
+# We found that the max depth should be 20. Explanations can be found in the
+# PDF with supported graph
+def find_depth_of_tree(max_depth, train_X, classified_train_y, test_X,
+                       classified_test_y):
     train_lost = []
     test_lost = []
 
-    range_of_chek = np.arange(3, 50)
-    for i in range_of_chek:
-        print(i)
-
+    range_of_check = np.arange(1, max_depth)
+    for i in range_of_check:
         base_estimator = DecisionTreeRegressor(max_depth=i)
         base_estimator.fit(train_X, classified_train_y)
 
         train_lost.append(
             mean_squared_error(classified_train_y,
                                base_estimator.predict(train_X)))
-        test_lost.append(
-            mean_squared_error(classified_test_y,
-                               base_estimator.predict(test_X)))
+        prd_clas = base_estimator.predict(test_X)
+
+        test_lost.append(mean_squared_error(classified_test_y, prd_clas))
 
     fig = go.Figure(data=[
-        go.Bar(x=range_of_chek, y=train_lost, name="train lost"),
-        go.Bar(x=range_of_chek, y=test_lost, name="test lost")])
+        go.Bar(x=range_of_check, y=train_lost, name="train lost"),
+        go.Bar(x=range_of_check, y=test_lost, name="test lost")])
+    fig.update_layout(title="loss on train and test as func of depth")
     fig.show()
 
-    from sklearn.linear_model import LinearRegression
-    from sklearn.linear_model import LogisticRegression
+
+def fit_classifier(X: pd.DataFrame, y: pd.Series):
+    classifier = DecisionTreeRegressor(max_depth=CHOSEN_DEPTH)
+    classified_y = np.where(y == 0, 0, 1)
+
+    return classifier.fit(X, classified_y)
+
+
+def split_data(X: pd.DataFrame, y: pd.DataFrame):
+    classified_y = np.where(y == 0, 0, 1)
+    has_cancer_ind = np.argwhere((classified_y.reshape(-1)) == 1)
+    has_cancer_ind = has_cancer_ind.reshape(
+        has_cancer_ind.shape[0])
+    have_cancer_X = np.take(X, indices=has_cancer_ind,
+                            axis=0)
+    have_cancer_y = np.take(y, indices=has_cancer_ind,
+                            axis=0)
+    return have_cancer_X, have_cancer_y
+
+
+def run_tumor_size_pred(train_data, labels, test_data):
+
+    fitted_cls = fit_classifier(train_data, labels)
+    have_cancer_train_X, have_cancer_train_y = split_data(train_data, labels)
 
     linear_model = LinearRegression()
-    logistic_model = LogisticRegression()
+    linear_model.fit(have_cancer_train_X, have_cancer_train_y)
 
-    linear_model.fit(train_X, train_y)
-    lin_pred = linear_model.predict(test_X)
-    lin_success = linear_model.score(test_X, test_y)
+    full_pred, cancer_pred, indx = predict_classifier(test_data, fitted_cls)
+    linear_pred = linear_model.predict(cancer_pred)
+    np.put(full_pred, indx, linear_pred)
+    return full_pred
 
-    fig = go.Figure(data=[
-        go.Scatter(x=np.arange(train_y.size), y=lin_pred, name="pred",
-                   mode="markers"),
-        go.Scatter(x=np.arange(train_y.size), y=labels, name="true",
-                   mode="markers"),
-    ])
-    fig.show()
-
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysi
-
-    train_score = []
-    test_scores = []
-    validation = []
-
-    for i in range(5, 15):
-        # poly = PolynomialFeatures(i)
-        # poly.fit(train_X, train_y)
-        # poly.transform()
-        # mean_squared_error(test_y, )
-
-        print(i)
-    ada = AdaBoostRegressor(DecisionTreeRegressor(max_depth=3),
-                            n_estimators=i)
-    ada.fit(train_X, train_y)
-    scoring = cross_validate(ada, train_X, train_y, cv=5)
-    validation.append(scoring['test_score'])
-    # pred = ada.predict(test_X)
-
-    train_score.append(ada.score(train_X, train_y))
-    test_scores.append(ada.score(test_X, test_y))
-
-    print(train_score)
-    print(test_scores)
-    print(validation)
+    # lin_pred_ = linear_model.predict(have_cancer_train_X)
+    # lin_success_train = np.square(
+    #     np.subtract(have_cancer_train_y, lin_pred_).mean())
+    # success = np.square(np.subtract(have_cancer_test_y, lin_pred).mean())
