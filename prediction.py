@@ -260,7 +260,7 @@ def preprocess(df: pd.DataFrame, labels):
             'Surgery date3', 'Surgery name1', 'Surgery name2', 'Surgery name3',
             'surgery before or after-Activity date',
             'surgery before or after-Actual activity'
-           ], axis=1, inplace=True)
+        ], axis=1, inplace=True)
 
     # Histological diagnosis
     df["Histological diagnosis"] = df["Histological diagnosis"].apply(
@@ -275,7 +275,8 @@ def preprocess(df: pd.DataFrame, labels):
     df["Lymphatic penetration"] = df["Lymphatic penetration"].apply(
         lambda x: Lymphatic_penetration_pre(x))
 
-    df = df.groupby(["Diagnosis date", 'id-hushed_internalpatientid', labels_name]).agg({
+    df = df.groupby(
+        ["Diagnosis date", 'id-hushed_internalpatientid', labels_name]).agg({
         ' Form Name': ', '.join,
         ' Hospital': 'first', 'Age': 'first', 'Basic stage': 'first',
         'Her2': 'first', 'Histological diagnosis': 'first',
@@ -291,7 +292,6 @@ def preprocess(df: pd.DataFrame, labels):
         'Tumor width': 'first', 'er': 'first', 'pr': 'first',
 
     }).reset_index()
-
 
     # cur_date
     today = datetime.strptime("6/2/2022", '%d/%m/%Y')
@@ -320,7 +320,19 @@ def preprocess(df: pd.DataFrame, labels):
     df["N -lymph nodes mark (TNM)"] = df["N -lymph nodes mark (TNM)"].apply(
         lambda x: lymph_nodes_mark_pre(x))
 
-    # make categorical
+    df[' Form Name'] = df[' Form Name'].apply(lambda x: x.split(', '))
+    df[' Form Name'] = df[' Form Name'].apply(lambda x: set(x))
+
+    s = set()
+    for i in df[' Form Name']:
+        for j in i:
+            s.add(j)
+
+    for col_name in s:
+        df[col_name] = df.apply(
+            lambda x: 1 if col_name in x[' Form Name'] else 0, axis=1)
+
+    # make categoricalL
     X = pd.get_dummies(df, columns=[" Hospital",
                                     "Histopatological degree",
                                     "Ivi -Lymphovascular invasion",
@@ -370,7 +382,7 @@ def preprocess(df: pd.DataFrame, labels):
     # Positive nodes
     X["Positive nodes"] = X["Positive nodes"].fillna(0)
 
-    # Positive nodes
+    # Tumor depth and width
     X["Tumor depth"] = X["Tumor depth"].fillna(0)
     X["Tumor width"] = X["Tumor width"].fillna(0)
     X["Surgery sum"] = X["Surgery sum"].fillna(0)
@@ -405,7 +417,6 @@ if __name__ == '__main__':
     y_tumor.rename(columns=lambda x: x.replace('אבחנה-', ''), inplace=True)
 
     a = set(original_data['id-hushed_internalpatientid'])
-
 
     d = {}
     original_data["surgery before or after-Actual activity"].apply(
