@@ -296,7 +296,7 @@ def preprocess(df: pd.DataFrame, labels=pd.DataFrame()):
         lambda x: Lymphatic_penetration_pre(x))
 
     df = df.groupby(
-        ["Diagnosis date", 'id-hushed_internalpatientid', labels_name]).agg({
+        ['id-hushed_internalpatientid',"Diagnosis date", labels_name]).agg({
         ' Form Name': ', '.join,
         ' Hospital': 'first', 'Age': 'first', 'Basic stage': 'first',
         'Her2': 'first', 'Histological diagnosis': 'first',
@@ -311,7 +311,7 @@ def preprocess(df: pd.DataFrame, labels=pd.DataFrame()):
         'T -Tumor mark (TNM)': 'first', 'Tumor depth': 'first',
         'Tumor width': 'first', 'er': 'first', 'pr': 'first',
 
-    }).reset_index()
+    })
 
     # cur_date
     today = datetime.strptime("6/2/2022", '%d/%m/%Y')

@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFE
 from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -44,5 +45,9 @@ def run_predicting_metastases(train_data, labels, test_data):
     forest = RandomForestClassifier(random_state=1)
     multi_target_forest = MultiOutputClassifier(forest, n_jobs=2)
     multi_target_forest.fit(train_data, labels)
+
+
+    selector = RFE(forest, n_features_to_select=20, step=1)
+    selector = selector.fit(train_data, labels)
     return multi_target_forest.predict(test_data)
 
